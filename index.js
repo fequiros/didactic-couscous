@@ -12,3 +12,15 @@ function generate()
 {
     
 }
+
+
+class ConnectedLines
+{
+    constructor()
+    {
+        // Creates arrays at each row and column that will store the separations
+        // between pixels within that line.
+        this.rows = new Array(canvas_height).fill([]);
+        this.cols = new Array(canvas_width).fill([]);
+    }
+}
