@@ -4,15 +4,46 @@ const canvas_height = 800;
 let canvas_context = document.getElementById("canvas").getContext("2d");
 canvas_context.canvas.width = canvas_width;
 canvas_context.canvas.height = canvas_height;
+let canvas_data;
 
 let generate_button = document.getElementById("generate-button");
 generate_button.onclick = generate;
 
+
 function generate()
 {
+    canvas_data = new ImageData(canvas_width, canvas_height);
 
+    let connected_lines = new ConnectedLines();
+    connected_lines.addLine(-100, 300, 900, 600);
+
+    let sections = connected_lines.createSections();
+    for (let i = 0; i != sections.length; ++i)
+    {
+        sections[i].setColor(randomRGB());
+    }
+
+    canvas_context.putImageData(canvas_data, 0, 0);
 }
 
+
+function randomRGB()
+{
+    let r = Math.floor(Math.random() * 256);
+    let g = Math.floor(Math.random() * 256);
+    let b = Math.floor(Math.random() * 256);
+    let a = 255;
+    return [r, g, b, a];
+}
+
+function setPixel(x, y, rgba)
+{
+    let index = 4 * ((y * canvas_width) + x)
+    canvas_data.data[index + 0] = rgba[0];
+    canvas_data.data[index + 1] = rgba[1];
+    canvas_data.data[index + 2] = rgba[2];
+    canvas_data.data[index + 3] = rgba[3];
+}
 
 function isBetween(check, a, b)
 {
@@ -131,20 +162,16 @@ class ConnectedLines
             }
             else
             {
-                console.log(current_x, current_y, line_dx, line_dy, y1, y2);
                 if (Math.abs(line_dx) <= 0.5 && isBetween(current_y, y1, y2))
                 {
                     const col = current_x + ((line_dx < 0) ? 0 : 1);
                     this.addNewLineMinimum(this.rows[current_y], col);
-                    console.log(col);
                 }
     
                 if (Math.abs(line_dy) <= 0.5 && isBetween(current_x, x1, x2))
                 {
                     const row = current_y + ((line_dy < 0) ? 0 : 1);
                     this.addNewLineMinimum(this.cols[current_x], row);
-                    console.log(row);
-                    
                 }
             }
 
@@ -256,6 +283,20 @@ class Section
         else
         {
             this.rows[row_index].push(connected_row);
+        }
+    }
+
+    setColor(rgba)
+    {
+        for (let row = 0; row != this.rows.length; ++row)
+        {
+            for (let i = 0; i != this.rows[row].length; ++i)
+            {
+                for (let col = this.rows[row][i][0]; col <= this.rows[row][i][1]; ++col)
+                {
+                    setPixel(col, this.initial_y + row, rgba);
+                }
+            }
         }
     }
 }
