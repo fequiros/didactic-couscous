@@ -10,7 +10,7 @@ generate_button.onclick = generate;
 
 function generate()
 {
-    
+
 }
 
 
@@ -136,6 +136,28 @@ class ConnectedLines
 
             if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
             else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
+        }
+    }
+}
+
+class Section
+{
+    constructor(initial_y)
+    {
+        this.initial_y = initial_y;
+        this.rows = [];
+    }
+
+    addConnectedRow(y, connected_row)
+    {
+        const row_index = y - this.initial_y;
+        if (row_index >= this.rows.length)
+        {
+            this.rows.push([connected_row]);
+        }
+        else
+        {
+            this.rows[row_index].push(connected_row);
         }
     }
 }
