@@ -99,6 +99,8 @@ class ConnectedLines
 
 
         // Creates the separations
+        const x_direction = (x1 < x2) ? 1 : -1;
+        const y_direction = (y1 < y2) ? 1 : -1;
         const start_x = Math.round(x1);
         const start_y = Math.round(y1);
         const end_x = Math.round(x2);
@@ -113,22 +115,41 @@ class ConnectedLines
 
 
             // Creates separations at current position based on deltas.
-            if (Math.abs(line_dx) <= 0.5 && isBetween(current_x, x1, x2))
+            if (line_dx == 0)
             {
-                const col = current_x + ((line_dx < 0) ? 0 : 1);
-                this.addNewLineMinimum(this.rows[current_y], col);
+                const col = current_x + ((x_direction < 0) ? 0 : 1);
+                if (Math.abs(x_coefficient) > 0.0001)
+                {
+                    this.addNewLineMinimum(this.rows[current_y], col);
+                }
+                
+                const row = current_y + ((y_direction > 0) ? 0 : 1);
+                if (Math.abs(y_coefficient) > 0.0001)
+                {
+                    this.addNewLineMinimum(this.cols[current_x], row);
+                }
             }
-
-            if (Math.abs(line_dy) <= 0.5 && isBetween(current_y, y1, y2))
+            else
             {
-                const row = current_y + ((line_dy < 0) ? 0 : 1);
-                this.addNewLineMinimum(this.cols[current_x], row);
+                console.log(current_x, current_y, line_dx, line_dy, y1, y2);
+                if (Math.abs(line_dx) <= 0.5 && isBetween(current_y, y1, y2))
+                {
+                    const col = current_x + ((line_dx < 0) ? 0 : 1);
+                    this.addNewLineMinimum(this.rows[current_y], col);
+                    console.log(col);
+                }
+    
+                if (Math.abs(line_dy) <= 0.5 && isBetween(current_x, x1, x2))
+                {
+                    const row = current_y + ((line_dy < 0) ? 0 : 1);
+                    this.addNewLineMinimum(this.cols[current_x], row);
+                    console.log(row);
+                    
+                }
             }
 
 
             // Determines the next pixel to move to.
-            const x_direction = (x1 < x2) ? 1 : -1;
-            const y_direction = (y1 < y2) ? 1 : -1;
             const x_wall = current_x + (0.5 * x_direction);
             const y_wall = current_y + (0.5 * y_direction);
             const y_intersection = (constant - (x_wall * x_coefficient)) / y_coefficient;
@@ -137,6 +158,83 @@ class ConnectedLines
             if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
             else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
         }
+    }
+
+    addConnectedLinesToSection(section, prior_row, prior_line, row, index)
+    {
+        // Finds the columns over which the two rows "overlap"
+        const next_line = this.rows[row][index];
+        let overlap_min = Math.max(prior_line[0], next_line[0]);
+        let overlap_max = Math.min(prior_line[1], next_line[1]);
+
+        // Checks if the two rows are connected within one of those columns
+        let are_connected = false;
+        for (let c = overlap_min; c <= overlap_max; ++c)
+        {
+            for (let i = 0; i != this.cols[c].length; ++i)
+            {
+                const min_row = this.cols[c][i][0];
+                const max_row = this.cols[c][i][1];
+                if (isBetween(prior_row, min_row, max_row) && isBetween(row, min_row, max_row))
+                {
+                    section.addConnectedRow(row, next_line);
+                    this.rows[row].splice(index, 1);
+                    c = overlap_max + 1;
+                    are_connected = true;
+                    break;
+                }
+            }
+        }
+
+        
+        // The rows aren't connected so don't look for further connections.
+        if (!are_connected) { return false; }
+
+
+        // Check if rows below are connected
+        if (row < canvas_height - 1)
+        {
+            for (let i = 0; i != this.rows[row + 1].length; ++i)
+            {
+                if (this.addConnectedLinesToSection(section, row, next_line, row + 1, i))
+                {
+                    i = -1;
+                }
+            }
+        }
+        
+
+        // Check if rows above are connected
+        if (row > 0)
+        {
+            for (let i = 0; i != this.rows[row - 1].length; ++i)
+            {
+                if (this.addConnectedLinesToSection(section, row, next_line, row - 1, i))
+                {
+                    i = -1;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    createSections()
+    {
+        let sections = [];
+        let current_row = 0;
+        while (current_row < canvas_height)
+        {
+            if (this.rows[current_row].length == 0) current_row += 1;
+            else
+            {
+                let next_section = new Section(current_row);
+                this.addConnectedLinesToSection(next_section, current_row, [0, canvas_width - 1], current_row, 0);
+                sections.push(next_section);
+            }
+        }
+
+        return sections;
     }
 }
 
