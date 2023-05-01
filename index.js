@@ -1,21 +1,56 @@
-const canvas_width = 600;
-const canvas_height = 600;
+let canvas_width = 600;
+let canvas_height = 600;
+
+// Canvas width input
+let canvas_width_input = document.getElementById("canvas-width-input");
+canvas_width_input.addEventListener("input", (event) => {
+    canvas_width_input.value = Math.max(0, Math.min(parseInt(canvas_width_input.value), 16384));
+});
+
+// Canvas height input
+let canvas_height_input = document.getElementById("canvas-height-input");
+canvas_height_input.addEventListener("input", (event) => {
+    canvas_height_input.value = Math.max(0, Math.min(parseInt(canvas_height_input.value), 16384));
+});
+
+// Randomize design input
+let randomize_design_input = document.getElementById("randomize-design-input");
+randomize_design_input.onclick = randomizeDesign;
+
 
 let canvas_context = document.getElementById("canvas").getContext("2d");
 canvas_context.canvas.width = canvas_width;
 canvas_context.canvas.height = canvas_height;
 let canvas_data;
 
-let generate_button = document.getElementById("generate-button");
-generate_button.onclick = generate;
+let sections = [];
 
 
-function generate()
+
+function randomizeDesign()
 {
-    canvas_data = new ImageData(canvas_width, canvas_height);
-    canvas_context.clearRect(0, 0, canvas_width, canvas_height);
-    canvas_context.beginPath();
+    // Update canvas width and height and get image_data size based on symmetry inputs
+    let data_width = parseInt(canvas_width_input.value);
+    canvas_context.canvas.width = data_width;
+    if (document.getElementById("left-right-symmetric-input").checked)
+    {
+        data_width = Math.ceil(data_width / 2);
+    }
+    canvas_width = data_width;
 
+
+    let data_height = parseInt(canvas_height_input.value);
+    canvas_context.canvas.height = data_height;
+    
+    if (document.getElementById("up-down-symmetric-input").checked)
+    {
+        data_height = Math.ceil(data_height / 2);
+    }
+    canvas_height = data_height;
+
+
+
+    canvas_data = new ImageData(data_width, data_height);
     let connected_lines = new ConnectedLines();
     const min_shapes = 3;
     const max_shapes = 10;
@@ -32,6 +67,60 @@ function generate()
     }
 
     canvas_context.putImageData(canvas_data, 0, 0);
+
+    let x_offset = ((canvas_context.canvas.width) % 2 == 0) ? 0 : -1;
+    let y_offset = ((canvas_context.canvas.height) % 2 == 0) ? 0 : -1;
+    // Both symmetric
+    if (data_height < canvas_context.canvas.height && data_width < canvas_context.canvas.width)
+    {
+        mirrorImageData(true, false);
+        canvas_context.putImageData(canvas_data, data_width + x_offset, 0);
+        mirrorImageData(false, true);
+        canvas_context.putImageData(canvas_data, data_width + x_offset, data_height + y_offset);
+        mirrorImageData(true, false);
+        canvas_context.putImageData(canvas_data, 0, data_height + y_offset);
+    }
+    // Just right-left symmetric
+    else if (data_width < canvas_context.canvas.width)
+    {
+        mirrorImageData(true, false);
+        canvas_context.putImageData(canvas_data, data_width + x_offset, 0);
+    }
+    // Just up-down symmetric
+    else if (data_height < canvas_context.canvas.height)
+    {
+        mirrorImageData(false, true);
+        canvas_context.putImageData(canvas_data, 0, data_height + y_offset);
+    }
+}
+
+function mirrorImageData(horizontal, vertical)
+{
+    if (horizontal)
+    {
+        for (let y = 0; y != canvas_data.height; ++y)
+        {
+            for (let x = 0; x < Math.floor(canvas_data.width / 2); ++x)
+            {
+                const rgba_copy = getPixel(canvas_data.width - x - 1, y);
+                setPixel(canvas_data.width - x - 1, y, getPixel(x, y));
+                setPixel(x, y, rgba_copy);
+            }
+        }
+    }
+
+    if (vertical)
+    {
+        for (let x = 0; x != canvas_data.width; ++x)
+        {
+            for (let y = 0; y < Math.floor(canvas_data.height / 2); ++y)
+            {
+                const rgba_copy = getPixel(x, canvas_data.height - y - 1);
+                setPixel(x, canvas_data.height - y - 1, getPixel(x, y));
+                setPixel(x, y, rgba_copy);
+            }
+        }
+    }
 }
 
 function randomRGB()
@@ -43,9 +132,19 @@ function randomRGB()
     return [r, g, b, a];
 }
 
+function getPixel(x, y)
+{
+    let index = 4 * ((y * canvas_width) + x);
+    r = canvas_data.data[index + 0];
+    g = canvas_data.data[index + 1];
+    b = canvas_data.data[index + 2];
+    a = canvas_data.data[index + 3];
+    return [r,g,b,a];
+}
+
 function setPixel(x, y, rgba)
 {
-    let index = 4 * ((y * canvas_width) + x)
+    let index = 4 * ((y * canvas_width) + x);
     canvas_data.data[index + 0] = rgba[0];
     canvas_data.data[index + 1] = rgba[1];
     canvas_data.data[index + 2] = rgba[2];
