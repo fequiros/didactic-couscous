@@ -5,9 +5,6 @@ let canvas_context = document.getElementById("canvas").getContext("2d");
 canvas_context.canvas.width = canvas_width;
 canvas_context.canvas.height = canvas_height;
 let canvas_data;
-let canvas2 = document.getElementById("canvas2").getContext("2d");
-canvas2.canvas.width = canvas_width;
-canvas2.canvas.height = canvas_height;
 
 let generate_button = document.getElementById("generate-button");
 generate_button.onclick = generate;
@@ -16,8 +13,6 @@ generate_button.onclick = generate;
 function generate()
 {
     canvas_data = new ImageData(canvas_width, canvas_height);
-    canvas2.clearRect(0, 0, canvas_width, canvas_height);
-    canvas2.beginPath();
     canvas_context.clearRect(0, 0, canvas_width, canvas_height);
     canvas_context.beginPath();
 
@@ -249,14 +244,6 @@ class ConnectedLines
             this.addLine(vertices[i-1][0], vertices[i-1][1], vertices[i][0], vertices[i][1]);
         }
         this.addLine(vertices[vertices.length-1][0], vertices[vertices.length-1][1], vertices[0][0], vertices[0][1]);
-
-        canvas2.moveTo(vertices[0][0], vertices[0][1]);
-        for (let i = 0; i != vertices.length - 1; ++i)
-        {
-            canvas2.lineTo(vertices[i+1][0], vertices[i+1][1]);
-        }
-        canvas2.lineTo(vertices[0][0], vertices[0][1]);
-        canvas2.stroke();
     }
 
     addRandomShape()
