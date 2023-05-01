@@ -1,6 +1,3 @@
-let canvas_width = 600;
-let canvas_height = 600;
-
 // Canvas width input
 let canvas_width_input = document.getElementById("canvas-width-input");
 canvas_width_input.addEventListener("input", (event) => {
@@ -17,41 +14,88 @@ canvas_height_input.addEventListener("input", (event) => {
 let randomize_design_input = document.getElementById("randomize-design-input");
 randomize_design_input.onclick = randomizeDesign;
 
-
-let canvas_context = document.getElementById("canvas").getContext("2d");
-canvas_context.canvas.width = canvas_width;
-canvas_context.canvas.height = canvas_height;
-let canvas_data;
+let change_color_pattern_input = document.getElementById("change-color-pattern-input");
+change_color_pattern_input.onclick = randomizeSectionColors;
 
 let sections = [];
+let colors = [];
+for (let i = 0; i <= 4; ++i)
+{
+    colors.push(randomRGB());
+}
 
 
+function drawSectionsToCanvas()
+{
+    // Draw sections to image_data
+    let canvas_context = document.getElementById("canvas").getContext("2d");
+    const x_symmetric = document.getElementById("left-right-symmetric-input").checked;
+    const y_symmetric = document.getElementById("up-down-symmetric-input").checked;
+    const design_width = (x_symmetric) ? Math.ceil(canvas_context.canvas.width / 2) : canvas_context.canvas.width;
+    const design_height = (y_symmetric) ? Math.ceil(canvas_context.canvas.height / 2) : canvas_context.canvas.height;
+
+    let canvas_data = new ImageData(design_width, design_height);
+    for (let i = 0; i != sections.length; ++i)
+    {
+        sections[i].setColor(canvas_data, colors[sections[i].color_index]);
+    }
+
+
+    // Draw image_data to canvas based on symmetries
+    canvas_context.putImageData(canvas_data, 0, 0);
+
+    const next_x = Math.floor(canvas_context.canvas.width / 2);
+    const next_y = Math.floor(canvas_context.canvas.height / 2);
+    if (x_symmetric && y_symmetric)
+    {
+        mirrorImageData(canvas_data, true, false);
+        canvas_context.putImageData(canvas_data, next_x, 0);
+        mirrorImageData(canvas_data, false, true);
+        canvas_context.putImageData(canvas_data, next_x, next_y);
+        mirrorImageData(canvas_data, true, false);
+        canvas_context.putImageData(canvas_data, 0, next_y);
+    }
+    else if (x_symmetric)
+    {
+        mirrorImageData(canvas_data, true, false);
+        canvas_context.putImageData(canvas_data, next_x, 0);
+    }
+    else if (y_symmetric)
+    {
+        mirrorImageData(canvas_data, false, true);
+        canvas_context.putImageData(canvas_data, 0, next_y);
+    }
+}
+
+function randomizeSectionColors()
+{
+    for (let i = 0; i != sections.length; ++i)
+    {
+        sections[i].color_index = Math.floor(Math.random() * colors.length);
+    }
+
+    drawSectionsToCanvas();
+}
 
 function randomizeDesign()
 {
-    // Update canvas width and height and get image_data size based on symmetry inputs
-    let data_width = parseInt(canvas_width_input.value);
-    canvas_context.canvas.width = data_width;
-    if (document.getElementById("left-right-symmetric-input").checked)
-    {
-        data_width = Math.ceil(data_width / 2);
-    }
-    canvas_width = data_width;
+    // Update canvas width and height from html input elements
+    let canvas_context = document.getElementById("canvas").getContext("2d");
+    const canvas_width = parseInt(canvas_width_input.value);
+    const canvas_height = parseInt(canvas_height_input.value);
+    canvas_context.canvas.width = canvas_width;
+    canvas_context.canvas.height = canvas_height;
 
 
-    let data_height = parseInt(canvas_height_input.value);
-    canvas_context.canvas.height = data_height;
-    
-    if (document.getElementById("up-down-symmetric-input").checked)
-    {
-        data_height = Math.ceil(data_height / 2);
-    }
-    canvas_height = data_height;
+    // Determine design dimensions based on symmetries and canvas dimensions
+    const x_symmetric = document.getElementById("left-right-symmetric-input").checked;
+    const y_symmetric = document.getElementById("up-down-symmetric-input").checked;
+    const design_width = (x_symmetric) ? Math.ceil(canvas_width / 2) : canvas_width;
+    const design_height = (y_symmetric) ? Math.ceil(canvas_height / 2) : canvas_height;
 
 
-
-    canvas_data = new ImageData(data_width, data_height);
-    let connected_lines = new ConnectedLines();
+    // Generate the design
+    let connected_lines = new ConnectedLines(design_width, design_height);
     const min_shapes = 3;
     const max_shapes = 10;
     const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
@@ -60,64 +104,37 @@ function randomizeDesign()
         connected_lines.addRandomShape();
     }
 
-    let sections = connected_lines.createSections();
-    for (let i = 0; i != sections.length; ++i)
-    {
-        sections[i].setColor(randomRGB());
-    }
+    
+    // Find and store the sections for changing colors later
+    sections = connected_lines.createSections();
 
-    canvas_context.putImageData(canvas_data, 0, 0);
-
-    let x_offset = ((canvas_context.canvas.width) % 2 == 0) ? 0 : -1;
-    let y_offset = ((canvas_context.canvas.height) % 2 == 0) ? 0 : -1;
-    // Both symmetric
-    if (data_height < canvas_context.canvas.height && data_width < canvas_context.canvas.width)
-    {
-        mirrorImageData(true, false);
-        canvas_context.putImageData(canvas_data, data_width + x_offset, 0);
-        mirrorImageData(false, true);
-        canvas_context.putImageData(canvas_data, data_width + x_offset, data_height + y_offset);
-        mirrorImageData(true, false);
-        canvas_context.putImageData(canvas_data, 0, data_height + y_offset);
-    }
-    // Just right-left symmetric
-    else if (data_width < canvas_context.canvas.width)
-    {
-        mirrorImageData(true, false);
-        canvas_context.putImageData(canvas_data, data_width + x_offset, 0);
-    }
-    // Just up-down symmetric
-    else if (data_height < canvas_context.canvas.height)
-    {
-        mirrorImageData(false, true);
-        canvas_context.putImageData(canvas_data, 0, data_height + y_offset);
-    }
+    randomizeSectionColors();
 }
 
-function mirrorImageData(horizontal, vertical)
+function mirrorImageData(image_data, horizontal, vertical)
 {
     if (horizontal)
     {
-        for (let y = 0; y != canvas_data.height; ++y)
+        for (let y = 0; y != image_data.height; ++y)
         {
-            for (let x = 0; x < Math.floor(canvas_data.width / 2); ++x)
+            for (let x = 0; x < Math.floor(image_data.width / 2); ++x)
             {
-                const rgba_copy = getPixel(canvas_data.width - x - 1, y);
-                setPixel(canvas_data.width - x - 1, y, getPixel(x, y));
-                setPixel(x, y, rgba_copy);
+                const rgba_copy = getPixel(image_data, image_data.width - x - 1, y);
+                setPixel(image_data, image_data.width - x - 1, y, getPixel(image_data, x, y));
+                setPixel(image_data, x, y, rgba_copy);
             }
         }
     }
 
     if (vertical)
     {
-        for (let x = 0; x != canvas_data.width; ++x)
+        for (let x = 0; x != image_data.width; ++x)
         {
-            for (let y = 0; y < Math.floor(canvas_data.height / 2); ++y)
+            for (let y = 0; y < Math.floor(image_data.height / 2); ++y)
             {
-                const rgba_copy = getPixel(x, canvas_data.height - y - 1);
-                setPixel(x, canvas_data.height - y - 1, getPixel(x, y));
-                setPixel(x, y, rgba_copy);
+                const rgba_copy = getPixel(image_data, x, image_data.height - y - 1);
+                setPixel(image_data, x, image_data.height - y - 1, getPixel(image_data, x, y));
+                setPixel(image_data, x, y, rgba_copy);
             }
         }
     }
@@ -132,23 +149,23 @@ function randomRGB()
     return [r, g, b, a];
 }
 
-function getPixel(x, y)
+function getPixel(image_data, x, y)
 {
-    let index = 4 * ((y * canvas_width) + x);
-    r = canvas_data.data[index + 0];
-    g = canvas_data.data[index + 1];
-    b = canvas_data.data[index + 2];
-    a = canvas_data.data[index + 3];
+    const index = 4 * ((y * image_data.width) + x);
+    r = image_data.data[index + 0];
+    g = image_data.data[index + 1];
+    b = image_data.data[index + 2];
+    a = image_data.data[index + 3];
     return [r,g,b,a];
 }
 
-function setPixel(x, y, rgba)
+function setPixel(image_data, x, y, rgba)
 {
-    let index = 4 * ((y * canvas_width) + x);
-    canvas_data.data[index + 0] = rgba[0];
-    canvas_data.data[index + 1] = rgba[1];
-    canvas_data.data[index + 2] = rgba[2];
-    canvas_data.data[index + 3] = rgba[3];
+    const index = 4 * ((y * image_data.width) + x);
+    image_data.data[index + 0] = rgba[0];
+    image_data.data[index + 1] = rgba[1];
+    image_data.data[index + 2] = rgba[2];
+    image_data.data[index + 3] = rgba[3];
 }
 
 function isBetween(check, a, b)
@@ -167,20 +184,22 @@ function isBetween(check, a, b)
 
 class ConnectedLines
 {
-    constructor()
+    constructor(width, height)
     {
+        this.width = width;
+        this.height = height;
         // Creates arrays at each row and column that store the separations
         // between pixels on that line.
         this.rows = [];
-        for (let i = 0; i != canvas_height; ++i)
+        for (let i = 0; i != height; ++i)
         {
-            this.rows.push([[0, canvas_width - 1]]);
+            this.rows.push([[0, width - 1]]);
         }
 
         this.cols = [];
-        for (let i = 0; i != canvas_width; ++i)
+        for (let i = 0; i != width; ++i)
         {
-            this.cols.push([[0, canvas_height - 1]]);
+            this.cols.push([[0, height - 1]]);
         }
     }
 
@@ -211,8 +230,8 @@ class ConnectedLines
 
         // If possible, clamps (x1, y1) and (x2, y2) to be inside the canvas.
         const min_position = -0.49;
-        const max_x = canvas_width - 0.51;
-        const max_y = canvas_height - 0.51;
+        const max_x = this.width - 0.51;
+        const max_y = this.height - 0.51;
         
         if (Math.abs(x1 - x2) < 0.0000001 && !isBetween(x1, min_position, max_x)) return;
         if (Math.abs(y1 - y2) < 0.0000001 && !isBetween(y1, min_position, max_y)) return;
@@ -349,8 +368,8 @@ class ConnectedLines
     {
         let min_pos_x = 50;
         let min_pos_y = 50;
-        let max_pos_x = canvas_width - 50;
-        let max_pos_y = canvas_width - 50;
+        let max_pos_x = this.width - 50;
+        let max_pos_y = this.height - 50;
         let min_radius = 10;
         let max_radius = 600;
         let min_sides = 3;
@@ -398,7 +417,7 @@ class ConnectedLines
 
 
         // Check if rows below are connected
-        if (row < canvas_height - 1)
+        if (row < this.height - 1)
         {
             for (let i = 0; i != this.rows[row + 1].length; ++i)
             {
@@ -429,13 +448,13 @@ class ConnectedLines
     {
         let sections = [];
         let current_row = 0;
-        while (current_row < canvas_height)
+        while (current_row < this.height)
         {
             if (this.rows[current_row].length == 0) current_row += 1;
             else
             {
                 let next_section = new Section(current_row);
-                this.addConnectedLinesToSection(next_section, current_row, [0, canvas_width - 1], current_row, 0);
+                this.addConnectedLinesToSection(next_section, current_row, [0, this.width - 1], current_row, 0);
                 sections.push(next_section);
             }
         }
@@ -465,7 +484,7 @@ class Section
         }
     }
 
-    setColor(rgba)
+    setColor(image_data, rgba)
     {
         for (let row = 0; row != this.rows.length; ++row)
         {
@@ -473,7 +492,7 @@ class Section
             {
                 for (let col = this.rows[row][i][0]; col <= this.rows[row][i][1]; ++col)
                 {
-                    setPixel(col, this.initial_y + row, rgba);
+                    setPixel(image_data, col, this.initial_y + row, rgba);
                 }
             }
         }
