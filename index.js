@@ -1,10 +1,13 @@
-const canvas_width = 800;
-const canvas_height = 800;
+const canvas_width = 600;
+const canvas_height = 600;
 
 let canvas_context = document.getElementById("canvas").getContext("2d");
 canvas_context.canvas.width = canvas_width;
 canvas_context.canvas.height = canvas_height;
 let canvas_data;
+let canvas2 = document.getElementById("canvas2").getContext("2d");
+canvas2.canvas.width = canvas_width;
+canvas2.canvas.height = canvas_height;
 
 let generate_button = document.getElementById("generate-button");
 generate_button.onclick = generate;
@@ -13,9 +16,19 @@ generate_button.onclick = generate;
 function generate()
 {
     canvas_data = new ImageData(canvas_width, canvas_height);
+    canvas2.clearRect(0, 0, canvas_width, canvas_height);
+    canvas2.beginPath();
+    canvas_context.clearRect(0, 0, canvas_width, canvas_height);
+    canvas_context.beginPath();
 
     let connected_lines = new ConnectedLines();
-    connected_lines.addShape(400, 400, 100, 8, 0, 0.1, 1.0);
+    const min_shapes = 3;
+    const max_shapes = 10;
+    const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
+    for (let i = 0; i != shapes; ++i)
+    {
+        connected_lines.addRandomShape();
+    }
 
     let sections = connected_lines.createSections();
     for (let i = 0; i != sections.length; ++i)
@@ -25,7 +38,6 @@ function generate()
 
     canvas_context.putImageData(canvas_data, 0, 0);
 }
-
 
 function randomRGB()
 {
@@ -126,7 +138,6 @@ class ConnectedLines
             (isBetween(intersected_y2, min_position, max_y)) ? y2 = intersected_y2 : x2 = intersected_x2;
         }
 
-
         // Stops early if line doesn't intersect canvas.
         if (!isBetween(x1, min_position, max_x) ||
             !isBetween(y1, min_position, max_y) ||
@@ -193,8 +204,19 @@ class ConnectedLines
             const y_intersection = (constant - (x_wall * x_coefficient)) / y_coefficient;
             const x_intersection = (constant - (y_wall * y_coefficient)) / x_coefficient;
 
-            if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
-            else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
+            if (Math.abs(x1 - x2) < 0.0000001)
+            {
+                current_y += y_direction;
+            }
+            else if (Math.abs(y1 - y2) < 0.0000001)
+            {
+                current_x += x_direction;
+            }
+            else
+            {
+                if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
+                else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
+            }
         }
     }
 
@@ -227,6 +249,35 @@ class ConnectedLines
             this.addLine(vertices[i-1][0], vertices[i-1][1], vertices[i][0], vertices[i][1]);
         }
         this.addLine(vertices[vertices.length-1][0], vertices[vertices.length-1][1], vertices[0][0], vertices[0][1]);
+
+        canvas2.moveTo(vertices[0][0], vertices[0][1]);
+        for (let i = 0; i != vertices.length - 1; ++i)
+        {
+            canvas2.lineTo(vertices[i+1][0], vertices[i+1][1]);
+        }
+        canvas2.lineTo(vertices[0][0], vertices[0][1]);
+        canvas2.stroke();
+    }
+
+    addRandomShape()
+    {
+        let min_pos_x = 50;
+        let min_pos_y = 50;
+        let max_pos_x = canvas_width - 50;
+        let max_pos_y = canvas_width - 50;
+        let min_radius = 10;
+        let max_radius = 600;
+        let min_sides = 3;
+        let max_sides = 20;
+
+        let pos_x = min_pos_x + (Math.random() * (max_pos_x - min_pos_x));
+        let pos_y = min_pos_y + (Math.random() * (max_pos_y - min_pos_y));
+        let radius = min_radius + (Math.random() * (max_radius - min_radius));
+        let sides = Math.floor(min_sides + (Math.random() * (max_sides - min_sides)));
+        let orientation = Math.random() * 2 * Math.PI;
+        let stretch_axis = Math.random() * 2 * Math.PI;
+        let stretch_scale = 0.1 + (Math.random() * 0.9);
+        this.addShape(pos_x, pos_y, radius, sides, orientation, stretch_axis, stretch_scale);
     }
 
     addConnectedLinesToSection(section, prior_row, prior_line, row, index)
