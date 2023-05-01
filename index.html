@@ -6,27 +6,27 @@
     <body>
         <div>
             <div style="float: left; height: 200px;">
-                Width: <input type="number" value="1024"><br>
-                Height: <input type="number" value="1024"><br>
-                X Symmetric: <input type="checkbox" checked><br>
-                Y Symmetric: <input type="checkbox" checked><br>
-                <button id="generate-button">Randomize Design</button>
+                Width: <input type="number" value="1024" id="canvas-width-input"><br>
+                Height: <input type="number" value="1024" id="canvas-height-input"><br>
+                Left-Right Symmetric: <input type="checkbox" checked id="left-right-symmetric-input"><br>
+                Up-Down Symmetric: <input type="checkbox" checked id="up-down-symmetric-input"><br>
+                Complexity: <input type="range" id="complexity-input"><br>
+                <button id="randomize-design-input">Randomize Design</button>
             </div>
             
             <div>
-                <button>Randomize Colors</button><br>
-                Number of colors: <input type="number" value="3"><br>
-                <ul style="overflow-y: scroll; height: 100px; width: 80px; list-style-type: none;">
+                <button id="randomize-colors-input">Randomize Colors</button><br>
+                Number of colors: <input type="number" value="3" id="number-of-colors-input"><br>
+                <ul style="overflow-y: scroll; height: 100px; width: 80px; list-style-type: none;" id="color-list">
                     <li><input type="color"></li>
                     <li><input type="color"></li>
                     <li><input type="color"></li>
                 </ul>
-                <button>Change Color Pattern</button>
+                <button id="change-color-pattern-input">Change Color Pattern</button>
             </div>
         </div>
         <br><br><br><br>
         <canvas id="canvas" style="border: 1px solid black;"></canvas>
-        <canvas id="canvas2" style="border: 1px solid black;"></canvas>
 
         <script src="index.js"></script>
     </body>
