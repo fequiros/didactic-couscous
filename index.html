@@ -4,7 +4,27 @@
         <title>Generative Art</title>
     </head>
     <body>
-        <button id="generate-button">Generate</button><br>
+        <div>
+            <div style="float: left; height: 200px;">
+                Width: <input type="number" value="1024"><br>
+                Height: <input type="number" value="1024"><br>
+                X Symmetric: <input type="checkbox" checked><br>
+                Y Symmetric: <input type="checkbox" checked><br>
+                <button id="generate-button">Randomize Design</button>
+            </div>
+            
+            <div>
+                <button>Randomize Colors</button><br>
+                Number of colors: <input type="number" value="3"><br>
+                <ul style="overflow-y: scroll; height: 100px; width: 80px; list-style-type: none;">
+                    <li><input type="color"></li>
+                    <li><input type="color"></li>
+                    <li><input type="color"></li>
+                </ul>
+                <button>Change Color Pattern</button>
+            </div>
+        </div>
+        <br><br><br><br>
         <canvas id="canvas" style="border: 1px solid black;"></canvas>
         <canvas id="canvas2" style="border: 1px solid black;"></canvas>
 
