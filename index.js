@@ -15,7 +15,7 @@ function generate()
     canvas_data = new ImageData(canvas_width, canvas_height);
 
     let connected_lines = new ConnectedLines();
-    connected_lines.addLine(-100, 300, 900, 600);
+    connected_lines.addShape(400, 400, 100, 8, 0, 0.1, 1.0);
 
     let sections = connected_lines.createSections();
     for (let i = 0; i != sections.length; ++i)
@@ -108,17 +108,23 @@ class ConnectedLines
         const max_x = canvas_width - 0.51;
         const max_y = canvas_height - 0.51;
         
+        if (Math.abs(x1 - x2) < 0.0000001 && !isBetween(x1, min_position, max_x)) return;
+        if (Math.abs(y1 - y2) < 0.0000001 && !isBetween(y1, min_position, max_y)) return;
+        
         x1 = Math.max(min_position, Math.min(x1, max_x));
         y1 = Math.max(min_position, Math.min(y1, max_y));
         x2 = Math.max(min_position, Math.min(x2, max_x));
         y2 = Math.max(min_position, Math.min(y2, max_y));
-        const intersected_x1 = (constant - (y1 * y_coefficient)) / x_coefficient;
-        const intersected_y1 = (constant - (x1 * x_coefficient)) / y_coefficient;
-        const intersected_x2 = (constant - (y2 * y_coefficient)) / x_coefficient;
-        const intersected_y2 = (constant - (x2 * x_coefficient)) / y_coefficient;
+        if (Math.abs(x1 - x2) > 0.0000001 && Math.abs(y1 - y2) > 0.0000001)
+        {
+            const intersected_x1 = (constant - (y1 * y_coefficient)) / x_coefficient;
+            const intersected_y1 = (constant - (x1 * x_coefficient)) / y_coefficient;
+            const intersected_x2 = (constant - (y2 * y_coefficient)) / x_coefficient;
+            const intersected_y2 = (constant - (x2 * x_coefficient)) / y_coefficient;
 
-        (isBetween(intersected_y1, min_position, max_y)) ? y1 = intersected_y1 : x1 = intersected_x1;
-        (isBetween(intersected_y2, min_position, max_y)) ? y2 = intersected_y2 : x2 = intersected_x2;
+            (isBetween(intersected_y1, min_position, max_y)) ? y1 = intersected_y1 : x1 = intersected_x1;
+            (isBetween(intersected_y2, min_position, max_y)) ? y2 = intersected_y2 : x2 = intersected_x2;
+        }
 
 
         // Stops early if line doesn't intersect canvas.
@@ -146,35 +152,40 @@ class ConnectedLines
 
 
             // Creates separations at current position based on deltas.
-            if (line_dx == 0)
+            if (Math.abs(x_coefficient) < 0.0000001)
             {
-                const col = current_x + ((x_direction < 0) ? 0 : 1);
-                if (Math.abs(x_coefficient) > 0.0001)
-                {
-                    this.addNewLineMinimum(this.rows[current_y], col);
-                }
-                
-                const row = current_y + ((y_direction > 0) ? 0 : 1);
-                if (Math.abs(y_coefficient) > 0.0001)
-                {
-                    this.addNewLineMinimum(this.cols[current_x], row);
-                }
+                const row = current_y + ((current_y > y1) ? 0 : 1);
+                this.addNewLineMinimum(this.cols[current_x], row);
+            }
+            else if (Math.abs(y_coefficient) < 0.0000001)
+            {
+                const col = current_x + ((current_x > x1) ? 0 : 1);
+                this.addNewLineMinimum(this.rows[current_y], col);
             }
             else
             {
-                if (Math.abs(line_dx) <= 0.5 && isBetween(current_y, y1, y2))
+                if (Math.abs(line_dx) < 0.0000001)
                 {
-                    const col = current_x + ((line_dx < 0) ? 0 : 1);
+                    const col = current_x + ((x_direction < 0) ? 0 : 1);
+                    const row = current_y + ((y_direction > 0) ? 0 : 1);
                     this.addNewLineMinimum(this.rows[current_y], col);
-                }
-    
-                if (Math.abs(line_dy) <= 0.5 && isBetween(current_x, x1, x2))
-                {
-                    const row = current_y + ((line_dy < 0) ? 0 : 1);
                     this.addNewLineMinimum(this.cols[current_x], row);
                 }
+                else
+                {
+                    if (isBetween(current_y, y1, y2) && Math.abs(line_dx) <= 0.5)
+                    {
+                        const col = current_x + ((line_dx < 0) ? 0 : 1);
+                        this.addNewLineMinimum(this.rows[current_y], col);
+                    }
+                    if (isBetween(current_x, x1, x2) && Math.abs(line_dy) <= 0.5)
+                    {
+                        const row = current_y + ((line_dy < 0) ? 0 : 1);
+                        this.addNewLineMinimum(this.cols[current_x], row);
+                    }
+                }
             }
-
+            
 
             // Determines the next pixel to move to.
             const x_wall = current_x + (0.5 * x_direction);
@@ -185,6 +196,37 @@ class ConnectedLines
             if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
             else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
         }
+    }
+
+    // Creates separations along the border of a stretched regular polygon
+    addShape(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
+    {
+        let vertices = [];
+        let angle_separation = (2 * Math.PI) / sides;
+        for (let i = 0; i != sides; ++i)
+        {
+            let direction = orientation + (i * angle_separation);
+            let vertex_x = center_x + (Math.cos(direction) * radius);
+            let vertex_y = center_y + (Math.sin(direction) * radius);
+
+            let theta = stretch_axis - direction;
+            let d = Math.cos(theta) * radius;
+            let stretch_x = center_x + Math.cos(stretch_axis) * d;
+            let stretch_y = center_y + Math.sin(stretch_axis) * d;
+
+            let stretch_direction = Math.atan2(vertex_y - stretch_y, vertex_x - stretch_x);
+            let stretch_distance = stretch_scale * Math.hypot(vertex_y - stretch_y, vertex_x - stretch_x);
+            let stretched_vertex_x = stretch_x + (Math.cos(stretch_direction) * stretch_distance);
+            let stretched_vertex_y = stretch_y + (Math.sin(stretch_direction) * stretch_distance);
+
+            vertices.push([stretched_vertex_x, stretched_vertex_y]);
+        }
+
+        for (let i = 1; i != vertices.length; ++i)
+        {
+            this.addLine(vertices[i-1][0], vertices[i-1][1], vertices[i][0], vertices[i][1]);
+        }
+        this.addLine(vertices[vertices.length-1][0], vertices[vertices.length-1][1], vertices[0][0], vertices[0][1]);
     }
 
     addConnectedLinesToSection(section, prior_row, prior_line, row, index)
