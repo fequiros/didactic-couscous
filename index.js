@@ -17,13 +17,80 @@ randomize_design_input.onclick = randomizeDesign;
 let change_color_pattern_input = document.getElementById("change-color-pattern-input");
 change_color_pattern_input.onclick = randomizeSectionColors;
 
+// Number of colors input
+let number_of_colors_input = document.getElementById("number-of-colors-input");
+number_of_colors_input.addEventListener("input", (event) => {
+    number_of_colors_input.value = Math.max(1, Math.min(parseInt(number_of_colors_input.value), 32));
+});
+
 let sections = [];
 let colors = [];
-for (let i = 0; i <= 4; ++i)
+
+// Randomize colors input
+let randomize_colors_input = document.getElementById("randomize-colors-input");
+randomize_colors_input.onclick = randomizeColors;
+randomizeColors();
+
+
+function randomizeColors()
 {
-    colors.push(randomRGB());
+    let color_list_element = document.getElementById("color-list");
+    let next_colors = [];
+    const number_of_colors = parseInt(number_of_colors_input.value);
+    for (let i = 0; i != number_of_colors; ++i)
+    {
+        next_colors.push(randomRGB());
+    }
+    colors = next_colors;
+
+    
+    while (color_list_element.firstChild)
+    {
+        color_list_element.removeChild(color_list_element.lastChild);
+    }
+
+    for (let i = 0; i != number_of_colors; ++i)
+    {
+        let new_list_element = document.createElement("li");
+        let new_color_element = document.createElement("input");
+        new_color_element.type = "color";
+        new_color_element.value = rgbToHex(colors[i][0], colors[i][1], colors[i][2]);
+        new_color_element.color_index = i;
+        new_color_element.addEventListener("input", (event) => {
+            let color = colors[event.target.color_index];
+            let rgb = hexToRgb(event.target.value);
+            color[0] = rgb.r;
+            color[1] = rgb.g;
+            color[2] = rgb.b;
+            drawSectionsToCanvas();
+        });
+        new_list_element.appendChild(new_color_element);
+        color_list_element.appendChild(new_list_element);
+    }
+
+    randomizeSectionColors();
 }
 
+// Copied these from: https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+  }
+  
+  function rgbToHex(r, g, b) {
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+  }
+
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+  // End copied
+  
 
 function drawSectionsToCanvas()
 {
