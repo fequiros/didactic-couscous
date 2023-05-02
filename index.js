@@ -132,6 +132,10 @@ function drawSectionsToCanvas()
         mirrorImageData(canvas_data, false, true);
         canvas_context.putImageData(canvas_data, 0, next_y);
     }
+
+    // Smooth image
+    canvas_data = canvas_context.getImageData(0, 0, canvas_context.canvas.width, canvas_context.canvas.height);
+    canvas_context.putImageData(smoothImageData(canvas_data), 0, 0);
 }
 
 function randomizeSectionColors()
@@ -208,6 +212,64 @@ function mirrorImageData(image_data, horizontal, vertical)
             }
         }
     }
+}
+
+function smoothImageData(image_data)
+{
+    let smoothed_image_data = new ImageData(image_data.width, image_data.height);
+    for (let y = 0; y != image_data.height; ++y)
+    {
+        for (let x = 0; x != image_data.width; ++x)
+        {
+            let around_colors = [];
+
+            // this pixel
+            around_colors.push(getPixel(image_data, x, y));
+
+            // upper three pixels
+            if (y > 0)
+            {
+                around_colors.push(getPixel(image_data, x, y - 1));
+                if (x > 0) around_colors.push(getPixel(image_data, x - 1, y - 1));
+                if (x < image_data.width - 1) around_colors.push(getPixel(image_data, x + 1, y - 1));
+            }
+
+            // lower three pixels
+            if (y < image_data.height - 1)
+            {
+                around_colors.push(getPixel(image_data, x, y + 1));
+                if (x > 0) around_colors.push(getPixel(image_data, x - 1, y + 1));
+                if (x < image_data.width - 1) around_colors.push(getPixel(image_data, x + 1, y + 1));
+            }
+
+            // left pixel
+            if (x > 0) around_colors.push(getPixel(image_data, x - 1, y));
+
+            // right pixel
+            if (x < image_data.width - 1) around_colors.push(getPixel(image_data, x + 1, y));
+
+            
+            // average around pixels
+            let sum_rgb = [0, 0, 0, 255];
+            let around_colors_length = around_colors.length;
+            for (let i = 0; i != around_colors_length; ++i)
+            {
+                let weight = 1.0 / around_colors_length;
+                weight *= ((i == 0) ? around_colors_length * 0.75 : (around_colors_length * 0.25) / (around_colors_length - 1));
+                sum_rgb[0] += around_colors[i][0] * weight;
+                sum_rgb[1] += around_colors[i][1] * weight;
+                sum_rgb[2] += around_colors[i][2] * weight;
+            }
+            sum_rgb[0] = Math.round(sum_rgb[0]);
+            sum_rgb[1] = Math.round(sum_rgb[1]);
+            sum_rgb[2] = Math.round(sum_rgb[2]);
+            
+
+            // add averaged pixel to smoothed image data
+            setPixel(smoothed_image_data, x, y, sum_rgb);
+        }
+    }
+    return smoothed_image_data;
 }
 
 function randomRGB()
