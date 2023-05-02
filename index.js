@@ -436,22 +436,24 @@ class ConnectedLines
 
     addRandomShape()
     {
-        let min_pos_x = 50;
-        let min_pos_y = 50;
-        let max_pos_x = this.width - 50;
-        let max_pos_y = this.height - 50;
-        let min_radius = 10;
-        let max_radius = 600;
-        let min_sides = 3;
-        let max_sides = 20;
+        const min_radius = 5;
+        const max_radius = Math.sqrt(this.width * this.radius);
+        let radius = min_radius + (Math.random() * (max_radius - min_radius));
 
+        const min_pos_x = -radius;
+        const min_pos_y = -radius;
+        const max_pos_x = this.width + radius;
+        const max_pos_y = this.height + radius;
         let pos_x = min_pos_x + (Math.random() * (max_pos_x - min_pos_x));
         let pos_y = min_pos_y + (Math.random() * (max_pos_y - min_pos_y));
-        let radius = min_radius + (Math.random() * (max_radius - min_radius));
-        let sides = Math.floor(min_sides + (Math.random() * (max_sides - min_sides)));
+        
+        const min_sides = 3;
+        const max_sides = 100;
+        let sides = Math.floor(min_sides + (Math.pow(Math.random(), 2) * (max_sides - min_sides)));
+
         let orientation = Math.random() * 2 * Math.PI;
         let stretch_axis = Math.random() * 2 * Math.PI;
-        let stretch_scale = 0.1 + (Math.random() * 0.9);
+        let stretch_scale = 0.05 + (Math.random() * 0.95);
         this.addShape(pos_x, pos_y, radius, sides, orientation, stretch_axis, stretch_scale);
     }
 
