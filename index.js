@@ -1,13 +1,13 @@
 // Canvas width input
 let canvas_width_input = document.getElementById("canvas-width-input");
 canvas_width_input.addEventListener("input", (event) => {
-    canvas_width_input.value = Math.max(0, Math.min(parseInt(canvas_width_input.value), 16384));
+    canvas_width_input.value = Math.max(0, Math.min(parseInt(canvas_width_input.value), 4096));
 });
 
 // Canvas height input
 let canvas_height_input = document.getElementById("canvas-height-input");
 canvas_height_input.addEventListener("input", (event) => {
-    canvas_height_input.value = Math.max(0, Math.min(parseInt(canvas_height_input.value), 16384));
+    canvas_height_input.value = Math.max(0, Math.min(parseInt(canvas_height_input.value), 4096));
 });
 
 // Randomize design input
@@ -163,8 +163,11 @@ function randomizeDesign()
 
     // Generate the design
     let connected_lines = new ConnectedLines(design_width, design_height);
-    const min_shapes = 3;
-    const max_shapes = 10;
+    let design_complexity = parseInt(document.getElementById("complexity-input").value);
+    design_complexity /= 100;
+    design_complexity *= design_complexity;
+    const min_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
+    const max_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
     const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
     for (let i = 0; i != shapes; ++i)
     {
