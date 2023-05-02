@@ -437,7 +437,7 @@ class ConnectedLines
     addRandomShape()
     {
         const min_radius = 5;
-        const max_radius = Math.sqrt(this.width * this.radius);
+        const max_radius = Math.sqrt(this.width * this.height);
         let radius = min_radius + (Math.random() * (max_radius - min_radius));
 
         const min_pos_x = -radius;
@@ -446,7 +446,7 @@ class ConnectedLines
         const max_pos_y = this.height + radius;
         let pos_x = min_pos_x + (Math.random() * (max_pos_x - min_pos_x));
         let pos_y = min_pos_y + (Math.random() * (max_pos_y - min_pos_y));
-        
+
         const min_sides = 3;
         const max_sides = 100;
         let sides = Math.floor(min_sides + (Math.pow(Math.random(), 2) * (max_sides - min_sides)));
