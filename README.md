@@ -1,6 +1,6 @@
 # spi-generative-art
 
-https://fequiros.github.io/didactic-couscous/
+https://fequiros.github.io/spi-generative-art/
 
 
 A (very) rough, quick, and simple art generation website. It should provide
