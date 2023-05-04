@@ -166,7 +166,7 @@ function randomizeDesign()
 
 
     // Generate the design
-    let connected_lines = new ConnectedLines(design_width, design_height);
+    let connected_lines = new Boundaries(design_width, design_height);
     let design_complexity = parseInt(document.getElementById("complexity-input").value);
     design_complexity /= 100;
     design_complexity *= design_complexity;
@@ -175,7 +175,7 @@ function randomizeDesign()
     const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
     for (let i = 0; i != shapes; ++i)
     {
-        connected_lines.addRandomShape();
+        connected_lines.addShape(new StretchedRegularPolygon());
     }
 
     
@@ -314,29 +314,22 @@ function isBetween(check, a, b)
     return false;
 }
 
-class ConnectedLines
+class Boundaries
 {
     constructor(width, height)
     {
         this.width = width;
         this.height = height;
-        // Creates arrays at each row and column that store the separations
-        // between pixels on that line.
+
         this.rows = [];
-        for (let i = 0; i != height; ++i)
-        {
-            this.rows.push([[0, width - 1]]);
-        }
+        for (let i = 0; i != height; ++i) this.rows.push([[0, width - 1]]);
 
         this.cols = [];
-        for (let i = 0; i != width; ++i)
-        {
-            this.cols.push([[0, height - 1]]);
-        }
+        for (let i = 0; i != width; ++i) this.cols.push([[0, height - 1]]);
     }
 
-    // Creates separation with position as the minimum
-    addNewLineMinimum(line, position)
+    // Adds a new minimum bound at the position in the provided row/col
+    addNewMinimumBound(line, position)
     {
         for (let i = 0; i != line.length; ++i)
         {
@@ -411,12 +404,12 @@ class ConnectedLines
             if (Math.abs(x_coefficient) < 0.0000001)
             {
                 const row = current_y + ((current_y > y1) ? 0 : 1);
-                this.addNewLineMinimum(this.cols[current_x], row);
+                this.addNewMinimumBound(this.cols[current_x], row);
             }
             else if (Math.abs(y_coefficient) < 0.0000001)
             {
                 const col = current_x + ((current_x > x1) ? 0 : 1);
-                this.addNewLineMinimum(this.rows[current_y], col);
+                this.addNewMinimumBound(this.rows[current_y], col);
             }
             else
             {
@@ -424,20 +417,20 @@ class ConnectedLines
                 {
                     const col = current_x + ((x_direction < 0) ? 0 : 1);
                     const row = current_y + ((y_direction > 0) ? 0 : 1);
-                    this.addNewLineMinimum(this.rows[current_y], col);
-                    this.addNewLineMinimum(this.cols[current_x], row);
+                    this.addNewMinimumBound(this.rows[current_y], col);
+                    this.addNewMinimumBound(this.cols[current_x], row);
                 }
                 else
                 {
                     if (isBetween(current_y, y1, y2) && Math.abs(line_dx) <= 0.5)
                     {
                         const col = current_x + ((line_dx < 0) ? 0 : 1);
-                        this.addNewLineMinimum(this.rows[current_y], col);
+                        this.addNewMinimumBound(this.rows[current_y], col);
                     }
                     if (isBetween(current_x, x1, x2) && Math.abs(line_dy) <= 0.5)
                     {
                         const row = current_y + ((line_dy < 0) ? 0 : 1);
-                        this.addNewLineMinimum(this.cols[current_x], row);
+                        this.addNewMinimumBound(this.cols[current_x], row);
                     }
                 }
             }
@@ -465,10 +458,11 @@ class ConnectedLines
         }
     }
 
-
     // Adds bounds created by the shape
     addShape(shape)
     {
+        shape.sizeup(this.width, this.height);
+
         const vertices = shape.vertices.length;
         for (let i = 1; i <= vertices; ++i)
         {
@@ -480,31 +474,6 @@ class ConnectedLines
             const y2 = vertex[1];
             this.addLine(x1, y1, x2, y2);
         }
-    }
-
-    addRandomShape()
-    {
-        const min_radius = 5;
-        const max_radius = Math.hypot(this.height / 2, this.width / 2);
-        const radius = randFloat(min_radius, max_radius);
-
-        const min_pos_x = 0//-radius;
-        const min_pos_y = 0//-radius;
-        const max_pos_x = this.width// + radius;
-        const max_pos_y = this.height// + radius;
-        const pos_x = randFloat(min_pos_x, max_pos_x);
-        const pos_y = randFloat(min_pos_y, max_pos_y);
-
-        const min_sides = 3;
-        const max_sides = 20;
-        const sides = randInt(min_sides, max_sides);
-
-        const orientation = Math.random() * 2 * Math.PI;
-        const stretch_axis = Math.random() * 2 * Math.PI;
-        const stretch_scale = 0.05 + (Math.random() * 0.95);
-
-        const shape = new StretchedRegularPolygon(pos_x, pos_y, radius, sides, orientation, stretch_axis, stretch_scale);
-        this.addShape(shape);
     }
 
     addConnectedLinesToSection(section, prior_row, prior_line, row, index)
@@ -597,9 +566,24 @@ function randInt(min, max)
 
 class StretchedRegularPolygon
 {
-    constructor(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
+    constructor()
+    {
+        const center_x = randFloat(0.0, 1.0);
+        const center_y = randFloat(0.0, 1.0);
+        const radius = randFloat(0.01, 1.0);
+        const sides = randInt(3, 20);
+        const orientation = randFloat(0, 2 * Math.PI);
+        const stretch_axis = randFloat(0, 2 * Math.PI);
+        const stretch_scale = randFloat(0.05, 1.0);
+
+        this.createShape(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale);
+    }
+
+    createShape(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
     {
         this.vertices = [];
+        this.center_x = center_x;
+        this.center_y = center_y;
 
         const internal_angle = (2 * Math.PI) / sides;
         for (let i = 0; i != sides; ++i)
@@ -622,6 +606,22 @@ class StretchedRegularPolygon
             const vertex_x = projected_x + (stretch_scale * difference_x);
             const vertex_y = projected_y + (stretch_scale * difference_y);
             this.vertices.push([center_x + vertex_x, center_y + vertex_y]);
+        }
+    }
+
+    // Translates and scales the "unit" shape up to those dimensions
+    sizeup(width, height)
+    {
+        const radius_scale = Math.hypot(width, height);
+
+        const number_of_vertices = this.vertices.length;
+        for (let i = 0; i != number_of_vertices; ++i)
+        {
+            let vertex = this.vertices[i];
+            const delta_x = vertex[0] - this.center_x;
+            const delta_y = vertex[1] - this.center_y;
+            vertex[0] = (this.center_x * width) + (delta_x * radius_scale);
+            vertex[1] = (this.center_y * height) + (delta_y * radius_scale);
         }
     }
 }
