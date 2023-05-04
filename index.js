@@ -465,58 +465,46 @@ class ConnectedLines
         }
     }
 
-    // Creates separations along the border of a stretched regular polygon
-    addShape(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
+
+    // Adds bounds created by the shape
+    addShape(shape)
     {
-        let vertices = [];
-        let angle_separation = (2 * Math.PI) / sides;
-        for (let i = 0; i != sides; ++i)
+        const vertices = shape.vertices.length;
+        for (let i = 1; i <= vertices; ++i)
         {
-            let direction = orientation + (i * angle_separation);
-            let vertex_x = center_x + (Math.cos(direction) * radius);
-            let vertex_y = center_y + (Math.sin(direction) * radius);
-
-            let theta = stretch_axis - direction;
-            let d = Math.cos(theta) * radius;
-            let stretch_x = center_x + Math.cos(stretch_axis) * d;
-            let stretch_y = center_y + Math.sin(stretch_axis) * d;
-
-            let stretch_direction = Math.atan2(vertex_y - stretch_y, vertex_x - stretch_x);
-            let stretch_distance = stretch_scale * Math.hypot(vertex_y - stretch_y, vertex_x - stretch_x);
-            let stretched_vertex_x = stretch_x + (Math.cos(stretch_direction) * stretch_distance);
-            let stretched_vertex_y = stretch_y + (Math.sin(stretch_direction) * stretch_distance);
-
-            vertices.push([stretched_vertex_x, stretched_vertex_y]);
+            const prior_vertex = shape.vertices[i - 1];
+            const vertex = shape.vertices[i % vertices];
+            const x1 = prior_vertex[0];
+            const y1 = prior_vertex[1];
+            const x2 = vertex[0];
+            const y2 = vertex[1];
+            this.addLine(x1, y1, x2, y2);
         }
-
-        for (let i = 1; i != vertices.length; ++i)
-        {
-            this.addLine(vertices[i-1][0], vertices[i-1][1], vertices[i][0], vertices[i][1]);
-        }
-        this.addLine(vertices[vertices.length-1][0], vertices[vertices.length-1][1], vertices[0][0], vertices[0][1]);
     }
 
     addRandomShape()
     {
         const min_radius = 5;
-        const max_radius = Math.sqrt(this.width * this.height);
-        let radius = min_radius + (Math.random() * (max_radius - min_radius));
+        const max_radius = Math.hypot(this.height / 2, this.width / 2);
+        const radius = randFloat(min_radius, max_radius);
 
-        const min_pos_x = -radius;
-        const min_pos_y = -radius;
-        const max_pos_x = this.width + radius;
-        const max_pos_y = this.height + radius;
-        let pos_x = min_pos_x + (Math.random() * (max_pos_x - min_pos_x));
-        let pos_y = min_pos_y + (Math.random() * (max_pos_y - min_pos_y));
+        const min_pos_x = 0//-radius;
+        const min_pos_y = 0//-radius;
+        const max_pos_x = this.width// + radius;
+        const max_pos_y = this.height// + radius;
+        const pos_x = randFloat(min_pos_x, max_pos_x);
+        const pos_y = randFloat(min_pos_y, max_pos_y);
 
         const min_sides = 3;
-        const max_sides = 100;
-        let sides = Math.floor(min_sides + (Math.pow(Math.random(), 2) * (max_sides - min_sides)));
+        const max_sides = 20;
+        const sides = randInt(min_sides, max_sides);
 
-        let orientation = Math.random() * 2 * Math.PI;
-        let stretch_axis = Math.random() * 2 * Math.PI;
-        let stretch_scale = 0.05 + (Math.random() * 0.95);
-        this.addShape(pos_x, pos_y, radius, sides, orientation, stretch_axis, stretch_scale);
+        const orientation = Math.random() * 2 * Math.PI;
+        const stretch_axis = Math.random() * 2 * Math.PI;
+        const stretch_scale = 0.05 + (Math.random() * 0.95);
+
+        const shape = new StretchedRegularPolygon(pos_x, pos_y, radius, sides, orientation, stretch_axis, stretch_scale);
+        this.addShape(shape);
     }
 
     addConnectedLinesToSection(section, prior_row, prior_line, row, index)
@@ -594,6 +582,47 @@ class ConnectedLines
         }
 
         return sections;
+    }
+}
+
+function randFloat(min, max)
+{
+    return min + (Math.random() * (max - min));
+}
+
+function randInt(min, max)
+{
+    return Math.floor(randFloat(min, max + 1));
+}
+
+class StretchedRegularPolygon
+{
+    constructor(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
+    {
+        this.vertices = [];
+
+        const internal_angle = (2 * Math.PI) / sides;
+        for (let i = 0; i != sides; ++i)
+        {
+            // Get initial unstretched and untranslated vertex
+            const vertex_direction = orientation + (i * internal_angle);
+            const initial_vertex_x = radius * Math.cos(vertex_direction);
+            const initial_vertex_y = radius * Math.sin(vertex_direction);
+
+            // Project it to the stretch axis
+            const projection_distance = radius * Math.cos(stretch_axis - vertex_direction);
+            const projected_x = Math.cos(stretch_axis) * projection_distance;
+            const projected_y = Math.sin(stretch_axis) * projection_distance;
+
+            // Get the vector from the projected point to the initial vertex
+            const difference_x = initial_vertex_x - projected_x;
+            const difference_y = initial_vertex_y - projected_y;
+
+            // The stretched vertex is on some proportion of that line
+            const vertex_x = projected_x + (stretch_scale * difference_x);
+            const vertex_y = projected_y + (stretch_scale * difference_y);
+            this.vertices.push([center_x + vertex_x, center_y + vertex_y]);
+        }
     }
 }
 
