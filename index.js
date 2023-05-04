@@ -375,7 +375,7 @@ class Boundaries
             if (vd > 0) row_bound += 1;
         }
 
-        console.log(current_x, current_y, row_bound, col_bound);
+        
         // Add the bounds if within pixel and line "blocks" pixel center
         if (Math.abs(hd) <= 0.5 && isBetween(current_y, line.y1, line.y2))
         {
