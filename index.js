@@ -172,8 +172,7 @@ function randomizeDesign()
     design_complexity *= design_complexity;
     const min_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
     const max_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
-    //const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
-    let shapes = 1;
+    const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
     connected_lines.addShapes(shapes);
 
     
