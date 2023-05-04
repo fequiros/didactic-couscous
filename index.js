@@ -172,11 +172,9 @@ function randomizeDesign()
     design_complexity *= design_complexity;
     const min_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
     const max_shapes = 3 + (Math.round(47 * design_complexity) * ((!x_symmetric) ? 1.5 : 1) * ((!y_symmetric) ? 1.5 : 1));
-    const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
-    for (let i = 0; i != shapes; ++i)
-    {
-        connected_lines.addShape(new StretchedRegularPolygon());
-    }
+    //const shapes = Math.floor(min_shapes + Math.random() * (max_shapes - min_shapes));
+    let shapes = 1;
+    connected_lines.addShapes(shapes);
 
     
     // Find and store the sections for changing colors later
@@ -458,21 +456,23 @@ class Boundaries
         }
     }
 
-    // Adds bounds created by the shape
-    addShape(shape)
+    // Creates shapes and uses their edges to update bounds
+    addShapes(number_of_shapes)
     {
-        shape.sizeup(this.width, this.height);
-
-        const vertices = shape.vertices.length;
-        for (let i = 1; i <= vertices; ++i)
+        for (let i = 0; i != number_of_shapes; ++i)
         {
-            const prior_vertex = shape.vertices[i - 1];
-            const vertex = shape.vertices[i % vertices];
-            const x1 = prior_vertex[0];
-            const y1 = prior_vertex[1];
-            const x2 = vertex[0];
-            const y2 = vertex[1];
-            this.addLine(x1, y1, x2, y2);
+            const shape = new StretchedRegularPolygon(this.width, this.height);
+            const number_of_vertices = shape.vertices.length;
+            for (let n = 1; n <= number_of_vertices; ++n)
+            {
+                const prior_vertex = shape.vertices[n - 1];
+                const vertex = shape.vertices[n % number_of_vertices];
+                const x1 = prior_vertex[0];
+                const y1 = prior_vertex[1];
+                const x2 = vertex[0];
+                const y2 = vertex[1];
+                this.addLine(x1, y1, x2, y2);
+            }
         }
     }
 
@@ -566,12 +566,23 @@ function randInt(min, max)
 
 class StretchedRegularPolygon
 {
-    constructor()
+    constructor(boundaries_width, boundaries_height)
     {
-        const center_x = randFloat(0.0, 1.0);
-        const center_y = randFloat(0.0, 1.0);
-        const radius = randFloat(0.01, 1.0);
-        const sides = randInt(3, 20);
+        const min_x = -0.49;
+        const max_x = boundaries_width - 0.51;
+        const min_y = -0.49;
+        const max_y = boundaries_height - 0.51;
+        const center_x = randFloat(min_x, max_x);
+        const center_y = randFloat(min_y, max_y);
+
+        const min_radius = 4;
+        const max_radius = Math.hypot(max_x - min_x, max_y - min_y) * 0.25;
+        const radius = randFloat(min_radius, max_radius);
+
+        const min_sides = 3;
+        const max_sides = 20;
+        const sides = randInt(min_sides, max_sides);
+
         const orientation = randFloat(0, 2 * Math.PI);
         const stretch_axis = randFloat(0, 2 * Math.PI);
         const stretch_scale = randFloat(0.05, 1.0);
@@ -582,8 +593,6 @@ class StretchedRegularPolygon
     createShape(center_x, center_y, radius, sides, orientation, stretch_axis, stretch_scale)
     {
         this.vertices = [];
-        this.center_x = center_x;
-        this.center_y = center_y;
 
         const internal_angle = (2 * Math.PI) / sides;
         for (let i = 0; i != sides; ++i)
@@ -606,22 +615,6 @@ class StretchedRegularPolygon
             const vertex_x = projected_x + (stretch_scale * difference_x);
             const vertex_y = projected_y + (stretch_scale * difference_y);
             this.vertices.push([center_x + vertex_x, center_y + vertex_y]);
-        }
-    }
-
-    // Translates and scales the "unit" shape up to those dimensions
-    sizeup(width, height)
-    {
-        const radius_scale = Math.hypot(width, height);
-
-        const number_of_vertices = this.vertices.length;
-        for (let i = 0; i != number_of_vertices; ++i)
-        {
-            let vertex = this.vertices[i];
-            const delta_x = vertex[0] - this.center_x;
-            const delta_y = vertex[1] - this.center_y;
-            vertex[0] = (this.center_x * width) + (delta_x * radius_scale);
-            vertex[1] = (this.center_y * height) + (delta_y * radius_scale);
         }
     }
 }
