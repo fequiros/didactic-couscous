@@ -353,7 +353,7 @@ class Boundaries
         const min_row = 0;
         const max_row = this.height - 1;
         const min_col = 0;
-        const max_col = this.height - 1;
+        const max_col = this.width - 1;
         if (current_x < min_col || current_x > max_col) return;
         if (current_y < min_row || current_y > max_row) return;
 
@@ -375,7 +375,7 @@ class Boundaries
             if (vd > 0) row_bound += 1;
         }
 
-
+        console.log(current_x, current_y, row_bound, col_bound);
         // Add the bounds if within pixel and line "blocks" pixel center
         if (Math.abs(hd) <= 0.5 && isBetween(current_y, line.y1, line.y2))
         {
@@ -386,13 +386,13 @@ class Boundaries
         {
             this.addNewMinimumBound(this.cols[current_x], row_bound);
         }
+
+        
     }
 
     // Creates separations on the line between (x1, y1) and (x2, y2).
     addLine(line)
     {
-        const x_direction = (line.x1 < line.x2) ? 1 : -1;
-        const y_direction = (line.y1 < line.y2) ? 1 : -1;
         const start_x = Math.round(line.x1);
         const start_y = Math.round(line.y1);
         const end_x = Math.round(line.x2);
@@ -405,24 +405,13 @@ class Boundaries
             
 
             // Determines the next pixel to move to.
-            const x_wall = current_x + (0.5 * x_direction);
-            const y_wall = current_y + (0.5 * y_direction);
-            const y_intersection = (line.constant - (x_wall * line.x_coefficient)) / line.y_coefficient;
-            const x_intersection = (line.constant - (y_wall * line.y_coefficient)) / line.x_coefficient;
+            const border_x = current_x + ((line.x1 < line.x2) ? 0.5 : -0.5);
+            const border_y = current_y + ((line.y1 < line.y2) ? 0.5 : -0.5);
+            const deviation_x = Math.abs(line.xAtY(border_y) - current_x);
+            const deviation_y = Math.abs(line.yAtX(border_x) - current_y);
 
-            if (Math.abs(line.x1 - line.x2) < 0.0000001)
-            {
-                current_y += y_direction;
-            }
-            else if (Math.abs(line.y1 - line.y2) < 0.0000001)
-            {
-                current_x += x_direction;
-            }
-            else
-            {
-                if (Math.abs(current_x - x_intersection) <= 0.5) current_y += y_direction;
-                else if (Math.abs(current_y - y_intersection) <= 0.5) current_x += x_direction;
-            }
+            if (deviation_y <= 0.5) current_x += (line.x1 < line.x2) ? 1 : -1;
+            else if (deviation_x <= 0.5) current_y += (line.y1 < line.y2) ? 1 : -1;
         }
     }
 
