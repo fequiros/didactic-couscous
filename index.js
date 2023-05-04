@@ -341,6 +341,7 @@ class Boundaries
         }
     }
 
+
     // Creates separations on the line between (x1, y1) and (x2, y2).
     addLine(x1, y1, x2, y2)
     {
@@ -348,37 +349,6 @@ class Boundaries
         const x_coefficient = -(y2 - y1);
         const y_coefficient = (x2 - x1);
         const constant = (x1 * x_coefficient) + (y1 * y_coefficient);
-
-
-        // If possible, clamps (x1, y1) and (x2, y2) to be inside the canvas.
-        const min_position = -0.49;
-        const max_x = this.width - 0.51;
-        const max_y = this.height - 0.51;
-        
-        if (Math.abs(x1 - x2) < 0.0000001 && !isBetween(x1, min_position, max_x)) return;
-        if (Math.abs(y1 - y2) < 0.0000001 && !isBetween(y1, min_position, max_y)) return;
-        
-        x1 = Math.max(min_position, Math.min(x1, max_x));
-        y1 = Math.max(min_position, Math.min(y1, max_y));
-        x2 = Math.max(min_position, Math.min(x2, max_x));
-        y2 = Math.max(min_position, Math.min(y2, max_y));
-        if (Math.abs(x1 - x2) > 0.0000001 && Math.abs(y1 - y2) > 0.0000001)
-        {
-            const intersected_x1 = (constant - (y1 * y_coefficient)) / x_coefficient;
-            const intersected_y1 = (constant - (x1 * x_coefficient)) / y_coefficient;
-            const intersected_x2 = (constant - (y2 * y_coefficient)) / x_coefficient;
-            const intersected_y2 = (constant - (x2 * x_coefficient)) / y_coefficient;
-
-            (isBetween(intersected_y1, min_position, max_y)) ? y1 = intersected_y1 : x1 = intersected_x1;
-            (isBetween(intersected_y2, min_position, max_y)) ? y2 = intersected_y2 : x2 = intersected_x2;
-        }
-
-        // Stops early if line doesn't intersect canvas.
-        if (!isBetween(x1, min_position, max_x) ||
-            !isBetween(y1, min_position, max_y) ||
-            !isBetween(x2, min_position, max_x) ||
-            !isBetween(y2, min_position, max_y))
-        { return; }
 
 
         // Creates the separations
@@ -392,47 +362,55 @@ class Boundaries
         let current_y = start_y;
         while (isBetween(current_x, start_x, end_x) && isBetween(current_y, start_y, end_y))
         {
-            // Get deltas from the center of pixel to line.
-            const line_dx = ((constant - (current_y * y_coefficient)) / x_coefficient) - current_x;
-            const line_dy = ((constant - (current_x * x_coefficient)) / y_coefficient) - current_y;
+            const min_row = 0;
+            const max_row = this.height - 1;
+            const min_col = 0;
+            const max_col = this.height - 1;
+
+            if (isBetween(current_x, min_col, max_col) && isBetween(current_y, min_row, max_row))
+            {
+                // Get deltas from the center of pixel to line.
+                const line_dx = ((constant - (current_y * y_coefficient)) / x_coefficient) - current_x;
+                const line_dy = ((constant - (current_x * x_coefficient)) / y_coefficient) - current_y;
 
 
-            // Creates separations at current position based on deltas.
-            if (Math.abs(x_coefficient) < 0.0000001)
-            {
-                const row = current_y + ((current_y > y1) ? 0 : 1);
-                this.addNewMinimumBound(this.cols[current_x], row);
-            }
-            else if (Math.abs(y_coefficient) < 0.0000001)
-            {
-                const col = current_x + ((current_x > x1) ? 0 : 1);
-                this.addNewMinimumBound(this.rows[current_y], col);
-            }
-            else
-            {
-                if (Math.abs(line_dx) < 0.0000001)
+                // Creates separations at current position based on deltas.
+                if (Math.abs(x_coefficient) < 0.0000001)
                 {
-                    const col = current_x + ((x_direction < 0) ? 0 : 1);
-                    const row = current_y + ((y_direction > 0) ? 0 : 1);
-                    this.addNewMinimumBound(this.rows[current_y], col);
+                    const row = current_y + ((current_y > y1) ? 0 : 1);
                     this.addNewMinimumBound(this.cols[current_x], row);
+                }
+                else if (Math.abs(y_coefficient) < 0.0000001)
+                {
+                    const col = current_x + ((current_x > x1) ? 0 : 1);
+                    this.addNewMinimumBound(this.rows[current_y], col);
                 }
                 else
                 {
-                    if (isBetween(current_y, y1, y2) && Math.abs(line_dx) <= 0.5)
+                    if (Math.abs(line_dx) < 0.0000001)
                     {
-                        const col = current_x + ((line_dx < 0) ? 0 : 1);
+                        const col = current_x + ((x_direction < 0) ? 0 : 1);
+                        const row = current_y + ((y_direction > 0) ? 0 : 1);
                         this.addNewMinimumBound(this.rows[current_y], col);
-                    }
-                    if (isBetween(current_x, x1, x2) && Math.abs(line_dy) <= 0.5)
-                    {
-                        const row = current_y + ((line_dy < 0) ? 0 : 1);
                         this.addNewMinimumBound(this.cols[current_x], row);
+                    }
+                    else
+                    {
+                        if (isBetween(current_y, y1, y2) && Math.abs(line_dx) <= 0.5)
+                        {
+                            const col = current_x + ((line_dx < 0) ? 0 : 1);
+                            this.addNewMinimumBound(this.rows[current_y], col);
+                        }
+                        if (isBetween(current_x, x1, x2) && Math.abs(line_dy) <= 0.5)
+                        {
+                            const row = current_y + ((line_dy < 0) ? 0 : 1);
+                            this.addNewMinimumBound(this.cols[current_x], row);
+                        }
                     }
                 }
             }
             
-
+            
             // Determines the next pixel to move to.
             const x_wall = current_x + (0.5 * x_direction);
             const y_wall = current_y + (0.5 * y_direction);
