@@ -311,6 +311,11 @@ function isBetween(check, a, b)
     return false;
 }
 
+function almostEqual(a, b, epsilon = 0.000001)
+{
+    return (Math.abs(a - b) < epsilon) ? true : false;
+}
+
 class Boundaries
 {
     constructor(width, height)
@@ -341,87 +346,75 @@ class Boundaries
         }
     }
 
+    // Adds the top/bottom and left/right bounds at a position
+    addBoundsAtPosition(current_x, current_y, line)
+    {
+        // Stop early if current_x or current_y are out of bounds
+        const min_row = 0;
+        const max_row = this.height - 1;
+        const min_col = 0;
+        const max_col = this.height - 1;
+        if (current_x < min_col || current_x > max_col) return;
+        if (current_y < min_row || current_y > max_row) return;
+
+
+        // Horizontal and vertical deltas from (curr_x, curr_y) to line
+        const hd = line.xAtY(current_y) - current_x;
+        const vd = line.yAtX(current_x) - current_y;
+
+        let row_bound = current_y;
+        let col_bound = current_x;
+        if (almostEqual(hd, 0) && !line.isHorizontal() && !line.isVertical())
+        {
+            if (line.x1 < line.x2) col_bound += 1;
+            if (line.y1 > line.y2) row_bound += 1;
+        }
+        else
+        {
+            if (hd > 0) col_bound += 1;
+            if (vd > 0) row_bound += 1;
+        }
+
+
+        // Add the bounds if within pixel and line "blocks" pixel center
+        if (Math.abs(hd) <= 0.5 && isBetween(current_y, line.y1, line.y2))
+        {
+            this.addNewMinimumBound(this.rows[current_y], col_bound);
+        }
+
+        if (Math.abs(vd) <= 0.5 && isBetween(current_x, line.x1, line.x2))
+        {
+            this.addNewMinimumBound(this.cols[current_x], row_bound);
+        }
+    }
 
     // Creates separations on the line between (x1, y1) and (x2, y2).
-    addLine(x1, y1, x2, y2)
+    addLine(line)
     {
-        // constant = (x * x_coefficient) + (y * y_coefficient)
-        const x_coefficient = -(y2 - y1);
-        const y_coefficient = (x2 - x1);
-        const constant = (x1 * x_coefficient) + (y1 * y_coefficient);
-
-
-        // Creates the separations
-        const x_direction = (x1 < x2) ? 1 : -1;
-        const y_direction = (y1 < y2) ? 1 : -1;
-        const start_x = Math.round(x1);
-        const start_y = Math.round(y1);
-        const end_x = Math.round(x2);
-        const end_y = Math.round(y2);
+        const x_direction = (line.x1 < line.x2) ? 1 : -1;
+        const y_direction = (line.y1 < line.y2) ? 1 : -1;
+        const start_x = Math.round(line.x1);
+        const start_y = Math.round(line.y1);
+        const end_x = Math.round(line.x2);
+        const end_y = Math.round(line.y2);
         let current_x = start_x;
         let current_y = start_y;
         while (isBetween(current_x, start_x, end_x) && isBetween(current_y, start_y, end_y))
         {
-            const min_row = 0;
-            const max_row = this.height - 1;
-            const min_col = 0;
-            const max_col = this.height - 1;
-
-            if (isBetween(current_x, min_col, max_col) && isBetween(current_y, min_row, max_row))
-            {
-                // Get deltas from the center of pixel to line.
-                const line_dx = ((constant - (current_y * y_coefficient)) / x_coefficient) - current_x;
-                const line_dy = ((constant - (current_x * x_coefficient)) / y_coefficient) - current_y;
-
-
-                // Creates separations at current position based on deltas.
-                if (Math.abs(x_coefficient) < 0.0000001)
-                {
-                    const row = current_y + ((current_y > y1) ? 0 : 1);
-                    this.addNewMinimumBound(this.cols[current_x], row);
-                }
-                else if (Math.abs(y_coefficient) < 0.0000001)
-                {
-                    const col = current_x + ((current_x > x1) ? 0 : 1);
-                    this.addNewMinimumBound(this.rows[current_y], col);
-                }
-                else
-                {
-                    if (Math.abs(line_dx) < 0.0000001)
-                    {
-                        const col = current_x + ((x_direction < 0) ? 0 : 1);
-                        const row = current_y + ((y_direction > 0) ? 0 : 1);
-                        this.addNewMinimumBound(this.rows[current_y], col);
-                        this.addNewMinimumBound(this.cols[current_x], row);
-                    }
-                    else
-                    {
-                        if (isBetween(current_y, y1, y2) && Math.abs(line_dx) <= 0.5)
-                        {
-                            const col = current_x + ((line_dx < 0) ? 0 : 1);
-                            this.addNewMinimumBound(this.rows[current_y], col);
-                        }
-                        if (isBetween(current_x, x1, x2) && Math.abs(line_dy) <= 0.5)
-                        {
-                            const row = current_y + ((line_dy < 0) ? 0 : 1);
-                            this.addNewMinimumBound(this.cols[current_x], row);
-                        }
-                    }
-                }
-            }
+            this.addBoundsAtPosition(current_x, current_y, line);
             
-            
+
             // Determines the next pixel to move to.
             const x_wall = current_x + (0.5 * x_direction);
             const y_wall = current_y + (0.5 * y_direction);
-            const y_intersection = (constant - (x_wall * x_coefficient)) / y_coefficient;
-            const x_intersection = (constant - (y_wall * y_coefficient)) / x_coefficient;
+            const y_intersection = (line.constant - (x_wall * line.x_coefficient)) / line.y_coefficient;
+            const x_intersection = (line.constant - (y_wall * line.y_coefficient)) / line.x_coefficient;
 
-            if (Math.abs(x1 - x2) < 0.0000001)
+            if (Math.abs(line.x1 - line.x2) < 0.0000001)
             {
                 current_y += y_direction;
             }
-            else if (Math.abs(y1 - y2) < 0.0000001)
+            else if (Math.abs(line.y1 - line.y2) < 0.0000001)
             {
                 current_x += x_direction;
             }
@@ -448,7 +441,7 @@ class Boundaries
                 const y1 = prior_vertex[1];
                 const x2 = vertex[0];
                 const y2 = vertex[1];
-                this.addLine(x1, y1, x2, y2);
+                this.addLine(new Line(x1, y1, x2, y2));
             }
         }
     }
@@ -539,6 +532,46 @@ function randFloat(min, max)
 function randInt(min, max)
 {
     return Math.floor(randFloat(min, max + 1));
+}
+
+class Line
+{
+    constructor(x1, y1, x2, y2)
+    {
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+
+        // Line equation: constant = (x * x_coefficient) + (y * y_coefficient)
+        this.x_coefficient = -(y2 - y1);
+        this.y_coefficient = (x2 - x1);
+        this.constant = (x1 * this.x_coefficient) + (y1 * this.y_coefficient);
+    }
+
+    isVertical()
+    {
+        return almostEqual(this.y_coefficient, 0);
+    }
+
+    isHorizontal()
+    {
+        return almostEqual(this.x_coefficient, 0);
+    }
+
+    xAtY(y)
+    {
+        if (this.isVertical()) return this.x1;
+        if (this.isHorizontal()) return undefined;
+        return (this.constant - (y * this.y_coefficient)) / this.x_coefficient;
+    }
+
+    yAtX(x)
+    {
+        if (this.isVertical()) return undefined;
+        if (this.isHorizontal()) return this.y1;
+        return (this.constant - (x * this.x_coefficient)) / this.y_coefficient;
+    }
 }
 
 class StretchedRegularPolygon
