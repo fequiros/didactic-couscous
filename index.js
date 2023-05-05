@@ -440,8 +440,8 @@ class Pattern
         let symmetrized_data = new CanvasData(canvas_width, canvas_height);
 
 
-        const hs = document.getElementById("left-right-symmetric-input").checked;
-        const vs = document.getElementById("up-down-symmetric-input").checked;
+        const hs = (canvas_width > this.boundaries.width) ? true : false;
+        const vs = (canvas_height > this.boundaries.height) ? true : false;
 
 
         symmetrized_data.addData(this.canvas_data, 0, 0);
@@ -469,6 +469,9 @@ class Pattern
     // Randomizes section color indices
     recolor()
     {
+        this.getHTMLColors();
+
+
         const max_color_index = this.colors.length - 1;
         const number_of_sections = this.sections.length;
         for (let i = 0; i != number_of_sections; ++i)
@@ -477,6 +480,16 @@ class Pattern
         }
 
         this.updateCanvas();
+    }
+
+    // Sets color set equal to colors from html elements
+    getHTMLColors()
+    {
+        let color_list_elements = document.getElementById("color-list").children;
+        for (let i = 0; i != color_list_elements.length; ++i)
+        {
+            this.colors[i] = new Color(undefined, color_list_elements[i].firstChild.value);
+        }
     }
 
     // Randomizes the color set (but doesn't update canvas)
@@ -508,18 +521,26 @@ class Pattern
             let new_color_element = document.createElement("input");
             new_color_element.type = "color";
             new_color_element.value = this.colors[i].hex;
-            // new_color_element.color_index = i;
-            // new_color_element.addEventListener("input", (event) => {
-            //     let color = colors[event.target.color_index];
-            //     let rgb = hexToRgb(event.target.value);
-            //     color[0] = rgb.r;
-            //     color[1] = rgb.g;
-            //     color[2] = rgb.b;
-            //     drawSectionsToCanvas();
-            // });
             new_list_element.appendChild(new_color_element);
             color_list_element.appendChild(new_list_element);
         }
+    }
+
+    // Sets the amount of colors based on input and updates html
+    updateColorsLength()
+    {
+        const length = parseInt(document.getElementById("number-of-colors-input").value);
+        const difference = length - this.colors.length;
+        if (difference <= 0)
+        {
+            for (let i = 0; i != Math.abs(difference); ++i) this.colors.pop();
+        }
+        else
+        {
+            for (let i = 0; i != difference; ++i) this.colors.push(new Color());
+        }
+
+        this.updateHTMLColors();
     }
 }
 
@@ -533,7 +554,7 @@ class Color
 
         if (hex != undefined)
         {
-            this.hex = hex;
+            this.hex = hex.toString();
             this.rgb = Color.hexToRGB(this.hex);
         }
     }
@@ -548,9 +569,9 @@ class Color
 
     static hexToRGB(hex)
     {
-        const r = parseInt(hex.substring(1, 2), 16);
-        const g = parseInt(hex.substring(3, 4), 16);
-        const b = parseInt(hex.substring(5, 6), 16);
+        const r = parseInt(hex.substring(1, 3), 16);
+        const g = parseInt(hex.substring(3, 5), 16);
+        const b = parseInt(hex.substring(5, 7), 16);
         return [r, g, b];
     }
 }
@@ -702,6 +723,7 @@ change_color_pattern_input.onclick = function() { pattern.recolor(); };
 let number_of_colors_input = document.getElementById("number-of-colors-input");
 number_of_colors_input.addEventListener("input", (event) => {
     number_of_colors_input.value = Math.max(1, Math.min(parseInt(number_of_colors_input.value), 16));
+    pattern.updateColorsLength();
 });
 
 // Randomize colors input
