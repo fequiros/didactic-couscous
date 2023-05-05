@@ -379,10 +379,14 @@ class Pattern
         }
     }
 
-    // TODO: change scaling to be less weight towards other pixels as image gets smaller
+    // Sets pixel values to some weighted mean of the surrounding pixels
     smoothenCanvasData()
     {
         let smoothed_data = new CanvasData(this.boundaries.width, this.boundaries.height);
+
+        const diagonal_distance = Math.hypot(this.boundaries.width, this.boundaries.height);
+        const max_diagonal_distance = Math.hypot(4096, 4096);
+        const smoothing_offset = 0.05 + (0.95 * (diagonal_distance / max_diagonal_distance));
 
         const max_y = this.boundaries.height - 1;
         const max_x = this.boundaries.width - 1;
@@ -404,7 +408,7 @@ class Pattern
                         const rgb = this.canvas_data.getPixel(cx, cy);
                         const dx = Math.abs(cx - x);
                         const dy = Math.abs(cy - y);
-                        const scale = 1 / (dx + dy + 1);
+                        const scale = 1 / (dx + dy + smoothing_offset);
                         
                         weighted_sum[0] += rgb[0] * scale;
                         weighted_sum[1] += rgb[1] * scale;
