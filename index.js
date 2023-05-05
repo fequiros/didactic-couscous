@@ -87,6 +87,7 @@ class CanvasData
         return this;
     }
 
+    // Adds another CanvasData to this one at position (offset_x, offset_y)
     addData(data, offset_x, offset_y)
     {
         const data_width = data.imgdata.width;
@@ -274,6 +275,8 @@ class Pattern
         }
     }
 
+    // Adds the bound at [row][index] to sections if it's connected to the prior
+    // bound. Calls itself to check bounds above and below it.
     addConnectedBoundsToSection(section, prior_row, prior_line, row, index)
     {
         // Finds the columns over which the two rows "overlap"
@@ -334,6 +337,7 @@ class Pattern
         return true;
     }
 
+    // Creates canvas_data from current settings and pushes to canvas
     updateCanvas()
     {
         this.canvas_data = new CanvasData(this.boundaries.width, this.boundaries.height);
@@ -348,6 +352,7 @@ class Pattern
         canvas_context.putImageData(this.canvas_data.imgdata, 0, 0);
     }
     
+    // Draws sections to canvas_data
     drawSections()
     {
         const sections = this.sections.length;
@@ -421,6 +426,7 @@ class Pattern
         this.canvas_data = smoothed_data;
     }
 
+    // Mirrors canvas_data based on symmetry settings
     symmetrizeCanvasData()
     {
         let canvas_context = document.getElementById("canvas").getContext("2d");
@@ -456,6 +462,7 @@ class Pattern
         this.canvas_data = symmetrized_data;
     }
 
+    // Randomizes section color indices
     recolor()
     {
         const max_color_index = this.colors.length - 1;
@@ -468,6 +475,7 @@ class Pattern
         this.updateCanvas();
     }
 
+    // Randomizes the color set (but doesn't update canvas)
     randomizeColors()
     {
         this.colors = [];
@@ -481,6 +489,7 @@ class Pattern
        this.updateHTMLColors();
     }
 
+    // Updates html elements to show new color set
     updateHTMLColors()
     {
         let color_list_element = document.getElementById("color-list");
@@ -567,6 +576,7 @@ class Line
         return almostEqual(this.x_coefficient, 0);
     }
 
+    // The x value of the line at a particular y value
     xAtY(y)
     {
         if (this.isVertical()) return this.x1;
@@ -574,6 +584,7 @@ class Line
         return (this.constant - (y * this.y_coefficient)) / this.x_coefficient;
     }
 
+    // The y value of the line at a particular x value
     yAtX(x)
     {
         if (this.isVertical()) return undefined;
